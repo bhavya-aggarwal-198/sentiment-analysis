@@ -1,0 +1,211 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10131d">
+    <title>SentimentScope | Understand the tone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
+    <div class="background-glow background-glow--one" aria-hidden="true"></div>
+    <div class="background-glow background-glow--two" aria-hidden="true"></div>
+
+    <header class="site-header">
+        <a class="brand" href="{% url 'home' %}" aria-label="SentimentScope home">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none">
+                    <path d="M5 18.5h5l3-9 5.5 15 3.5-10 2 4H27" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <span>sentiment<span class="brand-accent">scope</span></span>
+        </a>
+        <div class="header-actions">
+            <span class="header-note"><span class="status-dot"></span> Sentiment, in focus</span>
+            <button class="about-trigger" type="button" aria-label="About SentimentScope" aria-haspopup="dialog" aria-controls="about-dialog">
+                <span aria-hidden="true">i</span>
+                <span class="about-trigger-label">About</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="page-shell">
+        <section class="intro reveal">
+            <p class="eyebrow"><span class="eyebrow-line"></span> A clearer read on every word</p>
+            <h1>What's the feeling<br>behind <span>your text?</span></h1>
+            <p class="intro-copy">Explore the tone of a review, message, or thought with a little help from machine learning.</p>
+        </section>
+
+        <section class="workspace" aria-label="Sentiment analyzer">
+            <form class="analyzer-card reveal" method="post">
+                {% csrf_token %}
+                <div class="card-heading">
+                    <div>
+                        <p class="section-kicker">01 / Choose your model</p>
+                        <h2>Pick an analysis style</h2>
+                    </div>
+                    <span class="step-icon" aria-hidden="true">01</span>
+                </div>
+
+                <div class="model-options">
+                    {% for model_id, model in models.items %}
+                        <label class="model-option{% if selected_model == model_id %} is-selected{% endif %}">
+                            <input type="radio" name="model" value="{{ model_id }}" {% if selected_model == model_id %}checked{% endif %}>
+                            <span class="radio-indicator" aria-hidden="true"></span>
+                            <span class="model-copy">
+                                <strong>{{ model.name }}</strong>
+                                <small>{% if model_id == "balanced" %}Balanced across sentiment classes{% else %}Standard sentiment analysis{% endif %}</small>
+                            </span>
+                            <span class="model-arrow" aria-hidden="true">&#8599;</span>
+                        </label>
+                    {% endfor %}
+                </div>
+
+                <div class="input-heading">
+                    <div>
+                        <p class="section-kicker">02 / Add your text</p>
+                        <label for="sentiment-text">What would you like to analyze?</label>
+                    </div>
+                    <span class="optional-label">Private by design</span>
+                </div>
+                <textarea id="sentiment-text" name="text" rows="6" placeholder="Paste a review, a message, or a few lines on your mind..." required>{{ text }}</textarea>
+                {% if error %}
+                    <p class="form-error" role="alert">{{ error }}</p>
+                {% endif %}
+                <button class="analyze-button" type="submit">
+                    <span>Analyze sentiment</span>
+                    <span class="button-icon" aria-hidden="true">&rarr;</span>
+                </button>
+                <p class="privacy-note">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M4.5 7V5.25a3.5 3.5 0 0 1 7 0V7m-8 0h9v6h-9V7Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Your text is analyzed for this request and isn't saved.
+                </p>
+            </form>
+
+            <section class="result-card reveal{% if result %} has-result{% endif %}" aria-live="polite" aria-label="Sentiment result">
+                {% if result %}
+                    <div class="result-topline">
+                        <p class="section-kicker">03 / Your result</p>
+                        <span class="result-model">{{ result.model_name }}</span>
+                    </div>
+                    <div class="result-summary">
+                        <div class="result-orbit result-orbit--{{ result.sentiment }}" aria-hidden="true">
+                            <span class="orbit-core"></span>
+                            <span class="orbit-ring orbit-ring--one"></span>
+                            <span class="orbit-ring orbit-ring--two"></span>
+                        </div>
+                        <div>
+                            <p class="result-label">Overall sentiment</p>
+                            <h2 class="sentiment-title sentiment-{{ result.sentiment }}">{{ result.sentiment|title }}</h2>
+                        </div>
+                    </div>
+                    <div class="score-section">
+                        <div class="score-section-heading">
+                            <h3>Sentiment meter</h3>
+                            <span>Model breakdown</span>
+                        </div>
+                        <div class="score-list">
+                            {% for score in result.score_rows %}
+                                <div class="score-row score-row--{{ score.label }}">
+                                    <div class="score-caption">
+                                        <span>{{ score.label|title }}</span>
+                                        <strong>{{ score.value }}%</strong>
+                                    </div>
+                                    <div class="meter-track" role="meter" aria-label="{{ score.label|title }} sentiment" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ score.value }}">
+                                        <span class="meter-fill" data-score="{{ score.value }}" style="width: {{ score.value }}%;"></span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <p class="score-footnote">{{ result.score_method|title }} shown as a share of the model's sentiment scores.</p>
+                    </div>
+                    <div class="result-footer">
+                        <span class="footer-sparkle" aria-hidden="true">&#10038;</span>
+                        <p>Every sentence has a signal. Here's what this one suggests.</p>
+                    </div>
+                {% else %}
+                    <div class="empty-result">
+                        <div class="empty-visual" aria-hidden="true">
+                            <span class="empty-orbit empty-orbit--outer"></span>
+                            <span class="empty-orbit empty-orbit--inner"></span>
+                            <span class="empty-center">
+                                <svg viewBox="0 0 36 36" fill="none">
+                                    <path d="M5 20h6l3.5-10 6.5 17 4-12 2.5 5H31" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <p class="section-kicker">Your result will appear here</p>
+                        <h2>Ready when<br>you are.</h2>
+                        <p>Choose a model, add some text, and see how it reads between the lines.</p>
+                        <div class="sentiment-legend" aria-label="Possible sentiments">
+                            <span><i class="legend-dot legend-dot--negative"></i>Negative</span>
+                            <span><i class="legend-dot legend-dot--neutral"></i>Neutral</span>
+                            <span><i class="legend-dot legend-dot--positive"></i>Positive</span>
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
+        </section>
+
+        <footer class="page-footer">
+            <div class="footer-credit">
+                <span class="footer-rights">&copy; 2026 Bhavya Aggarwal. All rights reserved.</span>
+                <span class="footer-caption">SentimentScope — a clearer read on every word.</span>
+            </div>
+            <span class="footer-product">SentimentScope</span>
+        </footer>
+    </main>
+
+    <dialog class="about-dialog" id="about-dialog" aria-labelledby="about-title">
+        <div class="about-dialog-content">
+            <div class="about-dialog-header">
+                <div>
+                    <p class="section-kicker">A little about this project</p>
+                    <h2 id="about-title">Meet SentimentScope.</h2>
+                </div>
+                <button class="about-close" type="button" aria-label="Close about dialog" data-close-about>&times;</button>
+            </div>
+            <p class="about-description">
+                SentimentScope analyzes a piece of text and estimates whether its tone is
+                <span class="about-positive">positive</span>,
+                <span class="about-neutral">neutral</span>, or
+                <span class="about-negative">negative</span>. Choose the standard model or its balanced counterpart, then compare the sentiment breakdown.
+            </p>
+
+            <div class="about-stat">
+                <span class="about-stat-icon" aria-hidden="true">&#10038;</span>
+                <div>
+                    <strong>3,578,031</strong>
+                    <span>sentences used to train the models</span>
+                </div>
+            </div>
+
+            <div class="about-details">
+                <section class="about-detail">
+                    <h3>Languages &amp; tools</h3>
+                    <p>Python, HTML, CSS, and JavaScript. Built with Django, scikit-learn, and GSAP.</p>
+                </section>
+                <section class="about-detail">
+                    <h3>How it works</h3>
+                    <p>Both models use TF-IDF text features and logistic regression to classify negative, neutral, and positive sentiment.</p>
+                </section>
+                <section class="about-detail">
+                    <h3>Your text stays yours</h3>
+                    <p>Text is analyzed for your request and isn't saved by this app.</p>
+                </section>
+            </div>
+
+            <p class="about-signoff">Designed and built by Bhavya Aggarwal.</p>
+        </div>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+    <script src="{% static 'js/home.js' %}" defer></script>
+</body>
+</html>

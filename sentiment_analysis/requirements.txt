@@ -1,0 +1,4 @@
+Django==6.1.2
+joblib>=1.4,<2
+scikit-learn==1.6.1; python_version < "3.14"
+scikit-learn==1.9.1; python_version >= "3.14"
